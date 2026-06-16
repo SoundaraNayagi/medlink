@@ -1,16 +1,15 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: medlink-postgres
     environment:
-      POSTGRES_DB: ${DB_NAME:-medlink}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-medlink123}
+      POSTGRES_DB: medlink
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: medlink123
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -22,44 +21,37 @@ services:
       timeout: 5s
       retries: 5
 
-  # Spring Boot Backend
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     container_name: medlink-backend
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "8080:8080"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-medlink}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-medlink123}
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-min-32-characters-long-key-here}
-      JWT_EXPIRY: ${JWT_EXPIRY:-3600}
-      REFRESH_TOKEN_EXPIRY: ${REFRESH_TOKEN_EXPIRY:-604800}
+      DB_NAME: medlink
+      DB_USER: postgres
+      DB_PASSWORD: medlink123
+      JWT_SECRET: medlink-secret-key-min-32-characters-long-key-here
+      JWT_EXPIRY: 3600
+      REFRESH_TOKEN_EXPIRY: 604800
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - medlink-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Next.js Frontend
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
     container_name: medlink-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api/v1}
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
     depends_on:
       - backend
     networks:
