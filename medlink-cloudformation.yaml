@@ -1,0 +1,109 @@
+# MedLink - AWS CloudFormation Template
+# Deploy to AWS with CloudFormation
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MedLink Healthcare System - AWS Deployment'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    Description: EC2 instance type
+  
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair for SSH access
+
+Resources:
+  MedLinkSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MedLink Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.0.0.0/8
+
+  MedLinkEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c55b159cbfafe1f0  # Ubuntu 20.04 LTS
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref MedLinkSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update
+          apt-get install -y docker.io docker-compose git
+          systemctl start docker
+          systemctl enable docker
+          
+          cd /app
+          git clone https://github.com/SoundaraNayagi/medlink.git
+          cd medlink
+          cp .env.example .env
+          docker-compose up -d
+      Tags:
+        - Key: Name
+          Value: MedLink-Server
+
+  MedLinkRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: medlink-postgres
+      Engine: postgres
+      EngineVersion: '15.1'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername: postgres
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:medlink-db-password:SecretString:password}}'
+      DBName: medlink
+      VPCSecurityGroups:
+        - !GetAtt MedLinkSecurityGroup.GroupId
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+
+Outputs:
+  EC2PublicIP:
+    Description: Public IP of MedLink Server
+    Value: !GetAtt MedLinkEC2Instance.PublicIp
+  
+  RDSEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt MedLinkRDSInstance.Endpoint.Address
+  
+  FrontendURL:
+    Description: MedLink Frontend URL
+    Value: !Sub 'http://${MedLinkEC2Instance.PublicIp}:3000'
+  
+  BackendURL:
+    Description: MedLink Backend API URL
+    Value: !Sub 'http://${MedLinkEC2Instance.PublicIp}:8080/api/v1'
+  
+  SwaggerURL:
+    Description: API Swagger Documentation
+    Value: !Sub 'http://${MedLinkEC2Instance.PublicIp}:8080/swagger-ui.html'

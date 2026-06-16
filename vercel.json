@@ -1,0 +1,16 @@
+# MedLink - Vercel Deployment Configuration
+
+{
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://medlink-backend.herokuapp.com/api/v1"
+  },
+  "functions": {
+    "api/**": {
+      "memory": 3008,
+      "maxDuration": 300
+    }
+  }
+}

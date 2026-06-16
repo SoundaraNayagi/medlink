@@ -1,0 +1,59 @@
+# MedLink - Render.com Deployment Configuration
+
+services:
+  - type: web
+    name: medlink-frontend
+    env: node
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
+    plan: free
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: "${RENDER_EXTERNAL_URL}/api/v1"
+        scope: build
+
+  - type: web
+    name: medlink-backend
+    env: dockerfile
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    scaling:
+      minInstances: 1
+      maxInstances: 2
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: medlink-postgres
+          property: host
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        fromDatabase:
+          name: medlink-postgres
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: medlink-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: medlink-postgres
+          property: password
+      - key: JWT_SECRET
+        sync: false
+
+  - type: pserv
+    name: medlink-postgres
+    env: postgres
+    plan: free
+    ipAllowList: []
+    envVars:
+      - key: POSTGRES_DB
+        value: medlink
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        sync: false
