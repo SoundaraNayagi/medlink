@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: medlink-backend
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+    show-sql: false
+    open-in-view: false
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:medlink}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:medlink123}
+    driver-class-name: org.postgresql.Driver
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+  compression:
+    enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:your-secret-key-min-32-characters-long-key-here}
+  expiry: ${JWT_EXPIRY:3600}
+  refresh-token-expiry: ${REFRESH_TOKEN_EXPIRY:604800}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:medlink-records}
+    region: ${AWS_S3_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: '*'
+    max-age: 3600
+
+logging:
+  level:
+    root: INFO
+    com.medlink: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n'
+  file:
+    name: logs/medlink.log
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
